@@ -103,6 +103,8 @@ public class RobotMovement : MonoBehaviour
 
     void FixedUpdate()
     {
+
+
        
         //movement, updating of the robots position
         float moveForward = -moveInput.y * speed;
