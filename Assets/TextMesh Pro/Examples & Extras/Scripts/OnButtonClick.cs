@@ -13,4 +13,13 @@ public class OnButtonClick : MonoBehaviour
         Application.Quit();
     }
     
+    public void onContinue()
+    {
+
+    }
+
+    public void onRestart()
+    {
+
+    }
 }
