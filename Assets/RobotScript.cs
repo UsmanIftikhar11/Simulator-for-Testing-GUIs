@@ -25,6 +25,8 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     private Vector2 rotateInput;
 
+    public OnButtonClick menu;
+
     // vectors:
     private Vector3 currentSurfaceNormal = Vector3.up; //the normal of the surface we are currently on
     private Vector3 surfaceForward = Vector3.forward; // a vector poionting forward, used as the yaw-reference
@@ -80,8 +82,12 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     {
         if (context.performed)
         {
-            Debug.Log("Exit pressed!");
-            Application.Quit();
+            Debug.Log("Exit/Pause pressed!");
+            // Call the pause button function instead
+            if (menu != null)
+            {
+                menu.OnPauseButton();
+            }
         }
     }
 
@@ -144,6 +150,15 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             spectator.gameObject.SetActive(firstActive);
             Debug.Log("Camera toggled!");
         }*/
+
+        if (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame ||
+            Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+        {
+            if (menu != null)
+            {
+                menu.OnPauseButton();
+            }
+        }
 
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
