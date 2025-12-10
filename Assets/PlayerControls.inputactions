@@ -11,7 +11,16 @@
                     "type": "Value",
                     "id": "ba2a7402-eda3-4ded-86b6-97b3f4ee7ac4",
                     "expectedControlType": "Vector2",
-                    "processors": "",
+                    "processors": "ScaleVector2(x=0)",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Rotate",
+                    "type": "Value",
+                    "id": "d488bf6e-c764-44ba-9387-df223546efce",
+                    "expectedControlType": "Vector2",
+                    "processors": "ScaleVector2(y=0)",
                     "interactions": "",
                     "initialStateCheck": true
                 },
@@ -55,17 +64,6 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "af54e903-a1cd-41bd-adf6-ecf169b201f0",
-                    "path": "",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "ff49f250-4b77-4f46-9d48-d8bbd955e223",
                     "path": "<Gamepad>/rightStick",
                     "interactions": "",
@@ -76,7 +74,7 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "WASD",
+                    "name": "FrontBack",
                     "id": "f7c0ee6c-0427-431c-8e49-eb5b89103adc",
                     "path": "2DVector",
                     "interactions": "",
@@ -109,24 +107,46 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "",
+                    "id": "24fccfa3-6d61-43ab-8a6a-af9f4dcddd08",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Rotate",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Rotate",
+                    "id": "552268e5-94c7-4174-a720-131d9a9ea830",
+                    "path": "2DVector",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Rotate",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "left",
-                    "id": "95e64642-ebf2-4035-b7ae-2bd083b2cbf9",
+                    "id": "3474b54d-6729-4030-9d3c-f132d214f575",
                     "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Move",
+                    "action": "Rotate",
                     "isComposite": false,
                     "isPartOfComposite": true
                 },
                 {
                     "name": "right",
-                    "id": "7f3b0485-b3fa-4e2b-8a75-f9971a90e3ac",
+                    "id": "393f1e73-4158-49f4-8f7e-79a6ce46e54c",
                     "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Move",
+                    "action": "Rotate",
                     "isComposite": false,
                     "isPartOfComposite": true
                 },

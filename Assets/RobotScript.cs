@@ -23,6 +23,8 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     //the input from the keyboard
     private Vector2 moveInput;
 
+    private Vector2 rotateInput;
+
     // vectors:
     private Vector3 currentSurfaceNormal = Vector3.up; //the normal of the surface we are currently on
     private Vector3 surfaceForward = Vector3.forward; // a vector poionting forward, used as the yaw-reference
@@ -55,6 +57,12 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
+    }
+
+    public void OnRotate(InputAction.CallbackContext context)
+    {
+        rotateInput = context.ReadValue<Vector2>();
+        Debug.Log("Rotate input: " + rotateInput);
     }
 
     void OnEnable()
@@ -180,7 +188,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
 
         // updating how many degrees the robot has turned around the surface normal since last surface commit
-        yawDegrees += moveInput.x * rotationSpeed * Time.fixedDeltaTime;
+        yawDegrees += rotateInput.x * rotationSpeed * Time.fixedDeltaTime;
         Quaternion yawRot = Quaternion.AngleAxis(yawDegrees, currentSurfaceNormal);
         Vector3 desiredForwardOnSurface = (yawRot * surfaceForward).normalized;
 

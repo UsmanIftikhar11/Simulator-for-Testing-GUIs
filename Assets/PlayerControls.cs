@@ -97,7 +97,16 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""type"": ""Value"",
                     ""id"": ""ba2a7402-eda3-4ded-86b6-97b3f4ee7ac4"",
                     ""expectedControlType"": ""Vector2"",
-                    ""processors"": """",
+                    ""processors"": ""ScaleVector2(x=0)"",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Rotate"",
+                    ""type"": ""Value"",
+                    ""id"": ""d488bf6e-c764-44ba-9387-df223546efce"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": ""ScaleVector2(y=0)"",
                     ""interactions"": """",
                     ""initialStateCheck"": true
                 },
@@ -141,17 +150,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             ""bindings"": [
                 {
                     ""name"": """",
-                    ""id"": ""af54e903-a1cd-41bd-adf6-ecf169b201f0"",
-                    ""path"": """",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""ff49f250-4b77-4f46-9d48-d8bbd955e223"",
                     ""path"": ""<Gamepad>/rightStick"",
                     ""interactions"": """",
@@ -162,7 +160,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""WASD"",
+                    ""name"": ""FrontBack"",
                     ""id"": ""f7c0ee6c-0427-431c-8e49-eb5b89103adc"",
                     ""path"": ""2DVector"",
                     ""interactions"": """",
@@ -195,24 +193,46 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": true
                 },
                 {
+                    ""name"": """",
+                    ""id"": ""24fccfa3-6d61-43ab-8a6a-af9f4dcddd08"",
+                    ""path"": ""<Gamepad>/rightStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Rotate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Rotate"",
+                    ""id"": ""552268e5-94c7-4174-a720-131d9a9ea830"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Rotate"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
                     ""name"": ""left"",
-                    ""id"": ""95e64642-ebf2-4035-b7ae-2bd083b2cbf9"",
+                    ""id"": ""3474b54d-6729-4030-9d3c-f132d214f575"",
                     ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Move"",
+                    ""action"": ""Rotate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
                 },
                 {
                     ""name"": ""right"",
-                    ""id"": ""7f3b0485-b3fa-4e2b-8a75-f9971a90e3ac"",
+                    ""id"": ""393f1e73-4158-49f4-8f7e-79a6ce46e54c"",
                     ""path"": ""<Keyboard>/d"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Move"",
+                    ""action"": ""Rotate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
                 },
@@ -312,6 +332,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         // Robot
         m_Robot = asset.FindActionMap("Robot", throwIfNotFound: true);
         m_Robot_Move = m_Robot.FindAction("Move", throwIfNotFound: true);
+        m_Robot_Rotate = m_Robot.FindAction("Rotate", throwIfNotFound: true);
         m_Robot_Exit = m_Robot.FindAction("Exit", throwIfNotFound: true);
         m_Robot_ToggleCamera = m_Robot.FindAction("ToggleCamera", throwIfNotFound: true);
         m_Robot_Cleaning = m_Robot.FindAction("Cleaning", throwIfNotFound: true);
@@ -397,6 +418,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_Robot;
     private List<IRobotActions> m_RobotActionsCallbackInterfaces = new List<IRobotActions>();
     private readonly InputAction m_Robot_Move;
+    private readonly InputAction m_Robot_Rotate;
     private readonly InputAction m_Robot_Exit;
     private readonly InputAction m_Robot_ToggleCamera;
     private readonly InputAction m_Robot_Cleaning;
@@ -416,6 +438,10 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Robot/Move".
         /// </summary>
         public InputAction @Move => m_Wrapper.m_Robot_Move;
+        /// <summary>
+        /// Provides access to the underlying input action "Robot/Rotate".
+        /// </summary>
+        public InputAction @Rotate => m_Wrapper.m_Robot_Rotate;
         /// <summary>
         /// Provides access to the underlying input action "Robot/Exit".
         /// </summary>
@@ -461,6 +487,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Move.started += instance.OnMove;
             @Move.performed += instance.OnMove;
             @Move.canceled += instance.OnMove;
+            @Rotate.started += instance.OnRotate;
+            @Rotate.performed += instance.OnRotate;
+            @Rotate.canceled += instance.OnRotate;
             @Exit.started += instance.OnExit;
             @Exit.performed += instance.OnExit;
             @Exit.canceled += instance.OnExit;
@@ -487,6 +516,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Move.started -= instance.OnMove;
             @Move.performed -= instance.OnMove;
             @Move.canceled -= instance.OnMove;
+            @Rotate.started -= instance.OnRotate;
+            @Rotate.performed -= instance.OnRotate;
+            @Rotate.canceled -= instance.OnRotate;
             @Exit.started -= instance.OnExit;
             @Exit.performed -= instance.OnExit;
             @Exit.canceled -= instance.OnExit;
@@ -546,6 +578,13 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMove(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Rotate" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRotate(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "Exit" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
