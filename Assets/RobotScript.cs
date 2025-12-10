@@ -2,7 +2,7 @@
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class RobotMovement : MonoBehaviour
+public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 {
 
     //two available cameras:
@@ -22,6 +22,8 @@ public class RobotMovement : MonoBehaviour
 
     //the input from the keyboard
     private Vector2 moveInput;
+
+    private Vector2 rotateInput;
 
     // vectors:
     private Vector3 currentSurfaceNormal = Vector3.up; //the normal of the surface we are currently on
@@ -43,11 +45,13 @@ public class RobotMovement : MonoBehaviour
     public bool plasmaTorchActive = false;
     public bool cleaningHeadActive = false;
 
+    private PlayerControls controls;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        controls = new PlayerControls();
     }
-
 
 
     public void OnMove(InputAction.CallbackContext context)
@@ -55,10 +59,66 @@ public class RobotMovement : MonoBehaviour
         moveInput = context.ReadValue<Vector2>();
     }
 
+    public void OnRotate(InputAction.CallbackContext context)
+    {
+        rotateInput = context.ReadValue<Vector2>();
+        Debug.Log("Rotate input: " + rotateInput);
+    }
+
+    void OnEnable()
+    {
+        controls.Robot.SetCallbacks(this);
+        controls.Robot.Enable();
+    }
+
+    void OnDisable()
+    {
+        controls.Robot.Disable();
+    }
+
+    public void OnExit(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            Debug.Log("Exit pressed!");
+            Application.Quit();
+        }
+    }
+
+    public void OnToggleCamera(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+
+        bool firstActive = firstPerson.gameObject.activeSelf;
+        firstPerson.gameObject.SetActive(!firstActive);
+        spectator.gameObject.SetActive(firstActive);
+
+        Debug.Log("Camera toggled!");
+    }
+
+    public void OnCleaning(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            cleaningHeadActive = !cleaningHeadActive;
+            Debug.Log(cleaningHeadActive ? "Cleaning enabled" : "Cleaning disabled");
+        }
+    }
+
+    public void OnCutting(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            plasmaTorchActive = !plasmaTorchActive;
+            Debug.Log(plasmaTorchActive ? "Cutting enabled" : "Cutting disabled");
+        }
+    }
+
 
     void Update()
     {
         //switching between the two cameras
+        /*
         if (Keyboard.current.cKey.wasPressedThisFrame)
         {
             if (firstPerson.gameObject.activeSelf)
@@ -71,7 +131,19 @@ public class RobotMovement : MonoBehaviour
                 firstPerson.gameObject.SetActive(true);
                 spectator.gameObject.SetActive(false);
             }
-        }
+        }*/
+        /*
+        bool toggle =
+        Keyboard.current.cKey.wasPressedThisFrame ||
+        Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame;
+
+        if (toggle)
+        {
+            bool firstActive = firstPerson.gameObject.activeSelf;
+            firstPerson.gameObject.SetActive(!firstActive);
+            spectator.gameObject.SetActive(firstActive);
+            Debug.Log("Camera toggled!");
+        }*/
 
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
@@ -116,7 +188,7 @@ public class RobotMovement : MonoBehaviour
 
 
         // updating how many degrees the robot has turned around the surface normal since last surface commit
-        yawDegrees += moveInput.x * rotationSpeed * Time.fixedDeltaTime;
+        yawDegrees += rotateInput.x * rotationSpeed * Time.fixedDeltaTime;
         Quaternion yawRot = Quaternion.AngleAxis(yawDegrees, currentSurfaceNormal);
         Vector3 desiredForwardOnSurface = (yawRot * surfaceForward).normalized;
 
