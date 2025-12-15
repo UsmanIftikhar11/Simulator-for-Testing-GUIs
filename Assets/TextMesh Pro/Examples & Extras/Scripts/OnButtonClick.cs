@@ -4,24 +4,9 @@ using UnityEngine.InputSystem;
 
 public class OnButtonClick : MonoBehaviour
 {
-    //public static OnButtonClick Instance { get; private set; }
-
     public bool isPaused = false;
 
-    /*
-    void Awake()
-    {
-        // Basic singleton pattern so this controller survives scene loads.
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (Instance != this)
-        {
-            Destroy(gameObject);
-        }
-    }*/
+    private static OnButtonClick Instance;
 
     private void Update()
     {
@@ -84,12 +69,10 @@ public class OnButtonClick : MonoBehaviour
     public void OnPauseButton()
     {
         if (SceneManager.GetActiveScene().name != "ShipYard Demo") return;
-        if (isPaused) return;
 
         Time.timeScale = 0f;
-        SceneManager.LoadScene("PausePage", LoadSceneMode.Additive);
-        isPaused = true;
-        Debug.Log("Game paused and PausePage loaded (additive)");
+        SceneManager.LoadScene("PausePage", LoadSceneMode.Single);
+        Debug.Log("Game paused and moved to PausePage");
     }
 
     private void PauseGame()
@@ -101,12 +84,9 @@ public class OnButtonClick : MonoBehaviour
 
     public void onContinue()
     {
-        if (!isPaused) return;
-
         Debug.Log("Continue method called");
         Time.timeScale = 1f;
-        SceneManager.UnloadSceneAsync("PausePage");
-        isPaused = false;
+        SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
         Debug.Log("Game continued");
     }
 
@@ -114,8 +94,6 @@ public class OnButtonClick : MonoBehaviour
     {
         Debug.Log("Restart method called");
         Time.timeScale = 1f;
-        isPaused = false;
-        // Load the main game scene fresh (this unloads everything and starts a new simulation)
         SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
         Debug.Log("Scene restarted");
     }
