@@ -25,8 +25,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     private Vector2 rotateInput;
 
-    public OnButtonClick menu;
-
     // vectors:
     private Vector3 currentSurfaceNormal = Vector3.up; //the normal of the surface we are currently on
     private Vector3 surfaceForward = Vector3.forward; // a vector poionting forward, used as the yaw-reference
@@ -52,6 +50,8 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        firstPerson.gameObject.SetActive(true);
+        spectator.gameObject.SetActive(false);
         controls = new PlayerControls();
     }
 
@@ -82,12 +82,8 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     {
         if (context.performed)
         {
-            Debug.Log("Exit/Pause pressed!");
-            // Call the pause button function instead
-            if (menu != null)
-            {
-                menu.OnPauseButton();
-            }
+            Debug.Log("Exit pressed!");
+            Application.Quit();
         }
     }
 
@@ -150,15 +146,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             spectator.gameObject.SetActive(firstActive);
             Debug.Log("Camera toggled!");
         }*/
-
-        if (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame ||
-            Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
-        {
-            if (menu != null)
-            {
-                menu.OnPauseButton();
-            }
-        }
 
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
@@ -288,28 +275,32 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     // everything that happens when entering a new surface.
     private void CommitNewSurface(Collider newCollider, Vector3 newNormal)
     {
-        //updating lastSurfaceCollider and surface normal with the new surface
+        Vector3 oldNormal = currentSurfaceNormal;
+        Vector3 oldForward = surfaceForward;
+
         lastSurfaceCollider = newCollider;
         currentSurfaceNormal = newNormal.normalized;
 
+        // Rotation that aligns oldNormal to newNormal
+        Quaternion align = Quaternion.FromToRotation(oldNormal, currentSurfaceNormal);
 
-        //create a stable forward on the surface by projecting current transform.forward onto the new plane
-        surfaceForward = Vector3.ProjectOnPlane(transform.forward, currentSurfaceNormal);
-        if (surfaceForward.sqrMagnitude < 0.001f)
+        // Rotate the old tangent direction using the surface-to-surface rotation
+        Vector3 rotatedForward = align * oldForward;
+
+        // Project onto new tangent plane to clean it
+        Vector3 candidate = Vector3.ProjectOnPlane(rotatedForward, currentSurfaceNormal);
+
+        if (candidate.sqrMagnitude < 0.001f)
         {
-            // fallback if transform.forward is nearly parallel to normal
-            surfaceForward = Vector3.ProjectOnPlane(transform.right, currentSurfaceNormal);
-            if (surfaceForward.sqrMagnitude < 0.001f)
-            {
-                
-                surfaceForward = Vector3.Cross(currentSurfaceNormal, Vector3.up);
-                if (surfaceForward.sqrMagnitude < 0.001f) surfaceForward = Vector3.forward;
-            }
+            // Fallback if tangent collapses: choose any stable perpendicular
+            candidate = Vector3.Cross(currentSurfaceNormal, Vector3.up);
+            if (candidate.sqrMagnitude < 0.001f)
+                candidate = Vector3.Cross(currentSurfaceNormal, Vector3.right);
         }
-        surfaceForward.Normalize();
 
+        candidate.Normalize();
+        surfaceForward = candidate;
 
-        //reset yaw so we start from current facing on the new surface
         yawDegrees = 0f;
     }
 }
