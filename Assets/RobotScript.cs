@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody))]
 public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
@@ -80,9 +81,27 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     public void OnExit(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (!context.performed) return;
+
+        string currentScene = SceneManager.GetActiveScene().name;
+
+        // If we're in the main game, treat Exit as Pause instead of quitting
+        if (currentScene == "ShipYard Demo")
         {
-            Debug.Log("Exit pressed!");
+            Debug.Log("Exit pressed in game: pausing instead of quitting.");
+            OnButtonClick pauseScript = FindFirstObjectByType<OnButtonClick>();
+            if (pauseScript != null)
+            {
+                pauseScript.OnPauseButton();
+            }
+            else
+            {
+                Debug.LogWarning("Pause script not found when trying to pause from OnExit.");
+            }
+        }
+        else
+        {
+            Debug.Log("Exit pressed outside gameplay: quitting.");
             Application.Quit();
         }
     }

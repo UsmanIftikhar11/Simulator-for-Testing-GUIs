@@ -106,10 +106,11 @@ public class OnButtonClick : MonoBehaviour
         Debug.Log("Moved from StartPage to ShipYard Demo");
     }
 
+    /*
     public void OnExitButton()
     {
         QuitGame();
-    }
+    }*/
 
     public void QuitGame()
     {
