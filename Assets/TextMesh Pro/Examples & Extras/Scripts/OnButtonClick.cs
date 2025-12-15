@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
@@ -8,56 +8,55 @@ public class OnButtonClick : MonoBehaviour
 
     private void Update()
     {
-        // Use unscaledDeltaTime check to ensure Update runs even when Time.timeScale = 0
         string currentScene = SceneManager.GetActiveScene().name;
 
-        // StartPage controls
+        // --- START PAGE ---
         if (currentScene == "StartPage")
         {
-            // X key or Gamepad South button (X on PlayStation, A on Xbox) - Exit
-            if ((Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame) ||
-                (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame))
-            {
-                QuitGame();
-            }
-
-            // A key or Gamepad East button (Circle on PlayStation, B on Xbox) - Start Game
+            // A / buttonSouth → go into the game
             if ((Keyboard.current != null && Keyboard.current.aKey.wasPressedThisFrame) ||
-                (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame))
+                (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame))
             {
                 OnStartButton();
             }
-        }
 
-        // PausePage controls
-        else if (currentScene == "PausePage")
-        {
-            // X key or Gamepad South button - Exit
+            // X / buttonWest → leave the game
             if ((Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame) ||
-                (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame))
+                (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame))
             {
                 QuitGame();
             }
+        }
 
-            // A key or Gamepad East button - Continue
+        // --- PAUSE PAGE ---
+        else if (currentScene == "PausePage")
+        {
+            // A / buttonSouth → continue
             if ((Keyboard.current != null && Keyboard.current.aKey.wasPressedThisFrame) ||
-                (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame))
+                (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame))
             {
-                Debug.Log("A button pressed - Continue");
                 onContinue();
             }
 
-            // B key or Gamepad West button - Restart
+            // B / buttonEast → restart
             if ((Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame) ||
+                (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame))
+            {
+                onRestart();
+            }
+
+            // X / buttonWest → leave game
+            if ((Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame) ||
                 (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame))
             {
-                Debug.Log("B button pressed - Restart");
-                onRestart();
+                QuitGame();
             }
         }
 
-        // ShipYard Demo controls are handled in RobotMovement script
+        // --- ShipYard Demo (main game) ---
+        // gameplay controls handled in RobotMovement.cs
     }
+
 
     private bool IsInGame()
     {
@@ -67,13 +66,11 @@ public class OnButtonClick : MonoBehaviour
 
     public void OnPauseButton()
     {
-        if (!IsInGame())
-        {
-            // If we're on the StartPage, this shouldn't be called
-            Debug.LogWarning("Pause button called but not in game");
-            return;
-        }
-        PauseGame();
+        if (SceneManager.GetActiveScene().name != "ShipYard Demo") return;
+
+        Time.timeScale = 0f;
+        SceneManager.LoadScene("PausePage", LoadSceneMode.Single);
+        Debug.Log("Game paused and moved to PausePage");
     }
 
     private void PauseGame()
@@ -101,8 +98,12 @@ public class OnButtonClick : MonoBehaviour
 
     public void OnStartButton()
     {
+        // Only allow starting from StartPage
+        if (SceneManager.GetActiveScene().name != "StartPage") return;
+
         Time.timeScale = 1f;
         SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
+        Debug.Log("Moved from StartPage to ShipYard Demo");
     }
 
     public void OnExitButton()
