@@ -147,6 +147,49 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             Debug.Log("Camera toggled!");
         }*/
 
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (currentScene == "ShipYard Demo")
+        {
+            // --- CAMERA TOGGLE ---
+            if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+            {
+                bool firstActive = firstPerson.gameObject.activeSelf;
+                firstPerson.gameObject.SetActive(!firstActive);
+                spectator.gameObject.SetActive(firstActive);
+                Debug.Log("Camera toggled!");
+            }
+
+            // --- CLEANING HEAD ---
+            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame))
+            {
+                cleaningHeadActive = !cleaningHeadActive;
+                Debug.Log(cleaningHeadActive ? "Cleaning enabled" : "Cleaning disabled");
+            }
+
+            // --- CUTTING ---
+            if ((Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.yKey.wasPressedThisFrame))
+            {
+                plasmaTorchActive = !plasmaTorchActive;
+                Debug.Log(plasmaTorchActive ? "Cutting enabled" : "Cutting disabled");
+            }
+
+            // --- PAUSE GAME ---
+            if ((Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame))
+            {
+                OnButtonClick pauseScript = FindFirstObjectByType<OnButtonClick>();
+                if (pauseScript != null)
+                    pauseScript.OnPauseButton();
+            }
+
+            // --- MOVEMENT ---
+            // Keyboard A (for movement) is already handled by OnMove() via PlayerControls
+        }
+
+
+
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
