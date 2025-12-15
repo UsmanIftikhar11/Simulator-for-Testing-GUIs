@@ -86,6 +86,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         string currentScene = SceneManager.GetActiveScene().name;
 
         // If we're in the main game, treat Exit as Pause instead of quitting
+        
         if (currentScene == "ShipYard Demo")
         {
             Debug.Log("Exit pressed in game: pausing instead of quitting.");
