@@ -59,13 +59,38 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     public void OnMove(InputAction.CallbackContext context)
     {
+        if (OnButtonClick.IsPaused)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         moveInput = context.ReadValue<Vector2>();
     }
 
     public void OnRotate(InputAction.CallbackContext context)
     {
+
+        if (OnButtonClick.IsPaused)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         rotateInput = context.ReadValue<Vector2>();
         Debug.Log("Rotate input: " + rotateInput);
+    }
+
+    public void SetInputEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            controls.Robot.Enable();
+        }
+        else
+        {
+            controls.Robot.Disable();
+            moveInput = Vector2.zero;
+            rotateInput = Vector2.zero;
+        }
     }
 
     void OnEnable()
@@ -79,6 +104,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         controls.Robot.Disable();
     }
 
+    
     public void OnExit(InputAction.CallbackContext context)
     {
         if (!context.performed) return;
@@ -136,7 +162,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         }
     }
 
-
     void Update()
     {
         //switching between the two cameras
@@ -166,6 +191,10 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             spectator.gameObject.SetActive(firstActive);
             Debug.Log("Camera toggled!");
         }*/
+
+        //if(OnButtonClick.IsPaused || Time.unscaledTime < OnButtonClick.UnpauseTime + 0.2f) return;
+        if (OnButtonClick.IsPaused)
+            return;
 
         string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
         if (currentScene == "ShipYard Demo")

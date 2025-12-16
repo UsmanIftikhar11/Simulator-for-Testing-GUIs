@@ -2,11 +2,13 @@
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
+
 public class OnButtonClick : MonoBehaviour
 {
-    public bool isPaused = false;
+   // public bool isPaused = false;
+    public static bool IsPaused { get; private set; } = false; // ← Add this
 
-    private static OnButtonClick Instance;
+    private static OnButtonClick Instance { get; set; }
 
     private void Update()
     {
@@ -31,7 +33,7 @@ public class OnButtonClick : MonoBehaviour
         }
 
         // --- PAUSE PAGE ---
-        else if (currentScene == "PausePage")
+        else if (SceneManager.GetSceneByName("PausePage").isLoaded)
         {
             // A / buttonSouth → continue
             if ((Keyboard.current != null && Keyboard.current.aKey.wasPressedThisFrame) ||
@@ -66,33 +68,73 @@ public class OnButtonClick : MonoBehaviour
         return SceneManager.GetActiveScene().name == "ShipYard Demo";
     }
 
+    public static float UnpauseTime { get; private set; } = 0f; // Add this
+
+    private System.Collections.IEnumerator CleanupEventSystems()
+    {
+        yield return null; // Wait one frame for scene to load
+
+        var eventSystems = FindObjectsOfType<UnityEngine.EventSystems.EventSystem>();
+
+        // Keep only the first one, destroy the rest
+        for (int i = 1; i < eventSystems.Length; i++)
+        {
+            Destroy(eventSystems[i].gameObject);
+        }
+
+        Debug.Log($"Cleaned up EventSystems.  Remaining: {FindObjectsOfType<UnityEngine.EventSystems.EventSystem>().Length}");
+    }
+
     public void OnPauseButton()
     {
         if (SceneManager.GetActiveScene().name != "ShipYard Demo") return;
 
+        IsPaused = true;
         Time.timeScale = 0f;
-        SceneManager.LoadScene("PausePage", LoadSceneMode.Single);
-        Debug.Log("Game paused and moved to PausePage");
-    }
 
-    private void PauseGame()
-    {
-        Time.timeScale = 0f;
-        SceneManager.LoadScene("PausePage", LoadSceneMode.Single);
-        Debug.Log("Game paused");
+        // Disable robot input
+        RobotMovement robot = FindFirstObjectByType<RobotMovement>();
+        if (robot != null)
+        {
+            robot.SetInputEnabled(false);
+        }
+
+        SceneManager.LoadScene("PausePage", LoadSceneMode.Additive);
+        StartCoroutine(CleanupEventSystems());
+        Debug.Log("Game paused and moved to PausePage");
     }
 
     public void onContinue()
     {
         Debug.Log("Continue method called");
+        StartCoroutine(ContinueAfterFrame());
+    }
+
+    private System.Collections.IEnumerator ContinueAfterFrame()
+    {
+        SceneManager.UnloadSceneAsync("PausePage");
+        yield return null;
+        yield return null; // Wait 2 frames
+
+        IsPaused = false;
         Time.timeScale = 1f;
-        SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
-        Debug.Log("Game continued");
+
+        // Re-enable robot input after a small delay
+        yield return new WaitForSecondsRealtime(0.15f);
+
+        RobotMovement robot = FindFirstObjectByType<RobotMovement>();
+        if (robot != null)
+        {
+            robot.SetInputEnabled(true);
+        }
+
+        Debug.Log("Game continued and input re-enabled");
     }
 
     public void onRestart()
     {
         Debug.Log("Restart method called");
+        IsPaused = false; // ← Set to false
         Time.timeScale = 1f;
         SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
         Debug.Log("Scene restarted");
@@ -107,13 +149,7 @@ public class OnButtonClick : MonoBehaviour
         SceneManager.LoadScene("ShipYard Demo", LoadSceneMode.Single);
         Debug.Log("Moved from StartPage to ShipYard Demo");
     }
-
-    /*
-    public void OnExitButton()
-    {
-        QuitGame();
-    }*/
-
+    
     public void QuitGame()
     {
         Debug.Log("Quitting game...");
