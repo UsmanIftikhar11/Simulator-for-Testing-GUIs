@@ -2,6 +2,7 @@
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(AudioSource))]
 public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 {
 
@@ -16,6 +17,22 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     //the force of the magnet
     public float stickForce = 30f;
+
+    //Sound
+    public AudioClip movementSound;
+    public AudioClip rotationSound;
+    private AudioSource audioSource;
+    private AudioSource rotationAudioSource;
+
+    [Header("Movement Sound Settings")]
+    public float minPitch = 0.6f;
+    public float maxPitch = 1.4f;
+    public float fadeSpeed = 2f;
+
+    [Header("Rotation Sound Settings")]
+    public float rotationMinPitch = 0.7f;
+    public float rotationMaxPitch = 1.3f;
+    public float rotationFadeSpeed = 3f;
 
     //the robots rigidbody
     private Rigidbody rb;
@@ -50,6 +67,21 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        audioSource = GetComponent<AudioSource>();
+
+        //AudioSource for Movement
+        audioSource.clip = movementSound;
+        audioSource.loop = true;
+        audioSource.playOnAwake = false;
+        audioSource.volume = 0f; // initial sound off
+
+        //AudioSource for Rotation
+        rotationAudioSource = gameObject.AddComponent<AudioSource>();
+        rotationAudioSource.clip = rotationSound;
+        rotationAudioSource.loop = true;
+        rotationAudioSource.playOnAwake = false;
+        rotationAudioSource.volume = 0f;
+
         firstPerson.gameObject.SetActive(true);
         spectator.gameObject.SetActive(false);
         controls = new PlayerControls();
@@ -173,13 +205,74 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             speed = 8f;
             Debug.Log("Speed: 5");
         }
+
+        UpdateMovementSound();
+        UpdateRotationSound();
     }
+
+    void UpdateMovementSound()
+    {
+        bool isMoving = moveInput.sqrMagnitude > 0.01f;
+
+        if (isMoving)
+        {
+            if (!audioSource.isPlaying)
+            {
+                audioSource.Play();
+            }
+
+            audioSource.volume = Mathf.Lerp(audioSource.volume, 1f, fadeSpeed * Time.deltaTime);
+
+            float normalizedSpeed = Mathf.InverseLerp(1f, 8f, speed);
+            audioSource.pitch = Mathf.Lerp(minPitch, maxPitch, normalizedSpeed);
+        }
+        else
+        {
+            audioSource.volume = Mathf.Lerp(audioSource.volume, 0f, fadeSpeed * Time.deltaTime);
+
+            if (audioSource.volume < 0.01f && audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+        }
+    }
+
+    void UpdateRotationSound()
+    {
+        bool isMoving = moveInput.sqrMagnitude > 0.01f;
+        bool isRotating = Mathf.Abs(rotateInput.x) > 0.01f;
+
+        // Spela endast rotationsljud om roboten roterar UTAN att röra sig framåt/bakåt
+        bool shouldPlayRotationSound = isRotating && !isMoving;
+
+        if (shouldPlayRotationSound)
+        {
+            if (!rotationAudioSource.isPlaying)
+            {
+                rotationAudioSource.Play();
+            }
+
+            rotationAudioSource.volume = Mathf.Lerp(rotationAudioSource.volume, 1f, rotationFadeSpeed * Time.deltaTime);
+
+            // Pitch baserat på rotationshastighet
+            float rotationIntensity = Mathf.Abs(rotateInput.x);
+            rotationAudioSource.pitch = Mathf.Lerp(rotationMinPitch, rotationMaxPitch, rotationIntensity);
+        }
+        else
+        {
+            rotationAudioSource.volume = Mathf.Lerp(rotationAudioSource.volume, 0f, rotationFadeSpeed * Time.deltaTime);
+
+            if (rotationAudioSource.volume < 0.01f && rotationAudioSource.isPlaying)
+            {
+                rotationAudioSource.Stop();
+            }
+        }
+    }
+
 
     void FixedUpdate()
     {
 
-
-       
         //movement, updating of the robots position
         float moveForward = -moveInput.y * speed;
         Vector3 movement = transform.up * moveForward * Time.fixedDeltaTime;
