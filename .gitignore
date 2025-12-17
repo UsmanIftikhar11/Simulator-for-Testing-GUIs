@@ -6,12 +6,18 @@
 [Bb]uilds/
 [Ll]ogs/
 MemoryCaptures/
+UserSettings/
 
 # OS files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+# Plastic SCM workspace (local)
+.plastic/
+plastic/
+
 
 # Visual Studio / Rider / VSCode
 .vscode/
