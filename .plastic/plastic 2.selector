@@ -1,4 +1,0 @@
-repository "CrawlerSimulator/CrawlerSimulator@5773957424461@cloud"
-  path "/"
-    br "/main"
-    co "/main"
