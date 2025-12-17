@@ -68,7 +68,7 @@ public class OnButtonClick : MonoBehaviour
         return SceneManager.GetActiveScene().name == "ShipYard Demo";
     }
 
-    public static float UnpauseTime { get; private set; } = 0f; // Add this
+    public static float UnpauseTime { get; private set; } = 0f; 
 
     private System.Collections.IEnumerator CleanupEventSystems()
     {

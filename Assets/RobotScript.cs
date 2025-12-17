@@ -237,8 +237,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             // Keyboard A (for movement) is already handled by OnMove() via PlayerControls
         }
 
-
-
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
