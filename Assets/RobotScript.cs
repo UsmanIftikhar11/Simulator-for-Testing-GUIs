@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody))]
 public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
@@ -58,13 +59,38 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     public void OnMove(InputAction.CallbackContext context)
     {
+        if (OnButtonClick.IsPaused)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         moveInput = context.ReadValue<Vector2>();
     }
 
     public void OnRotate(InputAction.CallbackContext context)
     {
+
+        if (OnButtonClick.IsPaused)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         rotateInput = context.ReadValue<Vector2>();
         Debug.Log("Rotate input: " + rotateInput);
+    }
+
+    public void SetInputEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            controls.Robot.Enable();
+        }
+        else
+        {
+            controls.Robot.Disable();
+            moveInput = Vector2.zero;
+            rotateInput = Vector2.zero;
+        }
     }
 
     void OnEnable()
@@ -78,11 +104,31 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         controls.Robot.Disable();
     }
 
+    
     public void OnExit(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (!context.performed) return;
+
+        string currentScene = SceneManager.GetActiveScene().name;
+
+        // If we're in the main game, treat Exit as Pause instead of quitting
+        
+        if (currentScene == "ShipYard Demo")
         {
-            Debug.Log("Exit pressed!");
+            Debug.Log("Exit pressed in game: pausing instead of quitting.");
+            OnButtonClick pauseScript = FindFirstObjectByType<OnButtonClick>();
+            if (pauseScript != null)
+            {
+                pauseScript.OnPauseButton();
+            }
+            else
+            {
+                Debug.LogWarning("Pause script not found when trying to pause from OnExit.");
+            }
+        }
+        else
+        {
+            Debug.Log("Exit pressed outside gameplay: quitting.");
             Application.Quit();
         }
     }
@@ -116,7 +162,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         }
     }
 
-
     void Update()
     {
         //switching between the two cameras
@@ -146,6 +191,53 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             spectator.gameObject.SetActive(firstActive);
             Debug.Log("Camera toggled!");
         }*/
+
+        //if(OnButtonClick.IsPaused || Time.unscaledTime < OnButtonClick.UnpauseTime + 0.2f) return;
+        if (OnButtonClick.IsPaused)
+            return;
+
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (currentScene == "ShipYard Demo")
+        {
+            // --- CAMERA TOGGLE ---
+            if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+            {
+                bool firstActive = firstPerson.gameObject.activeSelf;
+                firstPerson.gameObject.SetActive(!firstActive);
+                spectator.gameObject.SetActive(firstActive);
+                Debug.Log("Camera toggled!");
+            }
+
+            // --- CLEANING HEAD ---
+            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame))
+            {
+                cleaningHeadActive = !cleaningHeadActive;
+                Debug.Log(cleaningHeadActive ? "Cleaning enabled" : "Cleaning disabled");
+            }
+
+            // --- CUTTING ---
+            if ((Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.yKey.wasPressedThisFrame))
+            {
+                plasmaTorchActive = !plasmaTorchActive;
+                Debug.Log(plasmaTorchActive ? "Cutting enabled" : "Cutting disabled");
+            }
+
+            // --- PAUSE GAME ---
+            if ((Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame) ||
+                (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame))
+            {
+                OnButtonClick pauseScript = FindFirstObjectByType<OnButtonClick>();
+                if (pauseScript != null)
+                    pauseScript.OnPauseButton();
+            }
+
+            // --- MOVEMENT ---
+            // Keyboard A (for movement) is already handled by OnMove() via PlayerControls
+        }
+
+
 
         // change speed with number keys
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
