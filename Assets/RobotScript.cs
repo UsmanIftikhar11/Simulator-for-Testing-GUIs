@@ -26,14 +26,9 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     // surface data
     private Vector3 currentSurfaceNormal = Vector3.up;   // normal of the surface we are currently on
-    private Vector3 surfaceForward = Vector3.forward;    // yaw reference (unused but kept as-is)
-    private float yawDegrees = 0f;                        // accumulated yaw (unused but kept as-is)
 
     // the robot mesh is rotated 90 degrees, otherwise it will stand up
     private Quaternion meshOffset = Quaternion.Euler(90f, 0f, 0f);
-
-    // keeping track of the last collided surface
-    private Collider lastSurfaceCollider = null;
 
     // if the angle changes more than 5 degrees, we update the surface normal
     private const float normalUpdateAngleThreshold = 5f;
@@ -233,10 +228,10 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     void FixedUpdate()
     {
-        // MAGNET FORCE
+        // the force of the magnet
         rb.AddForce(-currentSurfaceNormal * stickForce, ForceMode.Acceleration);
 
-        // ROTATION INPUT
+        // the rotation
         if (Mathf.Abs(rotateInput.x) > 0.001f)
         {
             Quaternion deltaYaw = Quaternion.AngleAxis(
@@ -247,13 +242,13 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             orientation = deltaYaw * orientation;
         }
 
-        // ALIGN UP TO SURFACE NORMAL
+        //aligning to surface normal
         Quaternion alignToSurface =
             Quaternion.FromToRotation(orientation * Vector3.up, currentSurfaceNormal);
 
         orientation = alignToSurface * orientation;
 
-        // MOVEMENT
+        // movement
         Vector3 forward = Vector3.ProjectOnPlane(
             orientation * Vector3.forward,
             currentSurfaceNormal
@@ -262,13 +257,14 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         Vector3 movement = forward * (moveInput.y * speed * Time.fixedDeltaTime);
         rb.MovePosition(rb.position + movement);
 
-        // APPLY ROTATION
+        // applying the rotation
         Quaternion targetRotation = orientation * Quaternion.Inverse(meshOffset);
         rb.MoveRotation(
             Quaternion.Slerp(rb.rotation, targetRotation, alignSpeed * Time.fixedDeltaTime)
         );
     }
 
+    // finds the best and most natural contact normal
     private Vector3 BestContactNormal(Collision collision)
     {
         Vector3 best = collision.contacts[0].normal;
@@ -287,16 +283,19 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         return best.normalized;
     }
 
+    // when entering a new collider
     private void OnCollisionEnter(Collision collision)
     {
         TryUpdateSurface(collision);
     }
 
+    //while on a collider
     private void OnCollisionStay(Collision collision)
     {
         TryUpdateSurface(collision);
     }
 
+    //updates the normal based on the current surfaces normal
     private void TryUpdateSurface(Collision collision)
     {
         Vector3 newNormal = BestContactNormal(collision);
@@ -308,8 +307,4 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         currentSurfaceNormal = newNormal;
     }
 
-    private void OnCollisionExit(Collision collision)
-    {
-     
-    }
 }
