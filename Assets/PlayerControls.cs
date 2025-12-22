@@ -145,6 +145,15 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Speed"",
+                    ""type"": ""Button"",
+                    ""id"": ""c8be9756-24ae-4eff-b007-e6500c541450"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -367,6 +376,28 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""action"": ""Cutting"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e4ea46ec-8114-460d-9149-9aedef80d600"",
+                    ""path"": ""<Gamepad>/dpad/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Speed"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c8518116-6432-4e58-a456-24ed97a9e90e"",
+                    ""path"": ""<Keyboard>/m"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Speed"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -381,6 +412,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Robot_ToggleCamera = m_Robot.FindAction("ToggleCamera", throwIfNotFound: true);
         m_Robot_Cleaning = m_Robot.FindAction("Cleaning", throwIfNotFound: true);
         m_Robot_Cutting = m_Robot.FindAction("Cutting", throwIfNotFound: true);
+        m_Robot_Speed = m_Robot.FindAction("Speed", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
@@ -467,6 +499,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Robot_ToggleCamera;
     private readonly InputAction m_Robot_Cleaning;
     private readonly InputAction m_Robot_Cutting;
+    private readonly InputAction m_Robot_Speed;
     /// <summary>
     /// Provides access to input actions defined in input action map "Robot".
     /// </summary>
@@ -502,6 +535,10 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Robot/Cutting".
         /// </summary>
         public InputAction @Cutting => m_Wrapper.m_Robot_Cutting;
+        /// <summary>
+        /// Provides access to the underlying input action "Robot/Speed".
+        /// </summary>
+        public InputAction @Speed => m_Wrapper.m_Robot_Speed;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -546,6 +583,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Cutting.started += instance.OnCutting;
             @Cutting.performed += instance.OnCutting;
             @Cutting.canceled += instance.OnCutting;
+            @Speed.started += instance.OnSpeed;
+            @Speed.performed += instance.OnSpeed;
+            @Speed.canceled += instance.OnSpeed;
         }
 
         /// <summary>
@@ -575,6 +615,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Cutting.started -= instance.OnCutting;
             @Cutting.performed -= instance.OnCutting;
             @Cutting.canceled -= instance.OnCutting;
+            @Speed.started -= instance.OnSpeed;
+            @Speed.performed -= instance.OnSpeed;
+            @Speed.canceled -= instance.OnSpeed;
         }
 
         /// <summary>
@@ -657,5 +700,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnCutting(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Speed" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnSpeed(InputAction.CallbackContext context);
     }
 }

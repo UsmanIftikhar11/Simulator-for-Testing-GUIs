@@ -40,6 +40,10 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     private PlayerControls controls;
     private Quaternion orientation;
 
+    [SerializeField] private float[] speedLevels = { 1f, 5f, 8f };
+    private int speedIndex = 0;
+
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -154,6 +158,16 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         }
     }
 
+    public void OnSpeed(InputAction.CallbackContext ctx)
+    {
+        if (!ctx.performed) return;
+
+        speedIndex = (speedIndex + 1) % speedLevels.Length;
+        speed = speedLevels[speedIndex];
+
+        Debug.Log($"Speed: {speed}");
+    }
+
     void Update()
     {
         if (OnButtonClick.IsPaused)
@@ -199,31 +213,24 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         }
 
         // change speed with number keys
+        /*
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
             speed = 1f;
             Debug.Log("Speed: 1");
         }
-        if (Keyboard.current.digit2Key.wasPressedThisFrame)
-        {
-            speed = 3f;
-            Debug.Log("Speed: 2");
-        }
+        
         if (Keyboard.current.digit3Key.wasPressedThisFrame)
         {
             speed = 5f;
             Debug.Log("Speed: 3");
         }
-        if (Keyboard.current.digit4Key.wasPressedThisFrame)
-        {
-            speed = 6f;
-            Debug.Log("Speed: 4");
-        }
+        
         if (Keyboard.current.digit5Key.wasPressedThisFrame)
         {
             speed = 8f;
             Debug.Log("Speed: 5");
-        }
+        }*/
     }
 
     void FixedUpdate()
