@@ -5,48 +5,40 @@ using UnityEngine.SceneManagement;
 [RequireComponent(typeof(Rigidbody))]
 public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 {
-
-    //two available cameras:
+    // two available cameras
     public Camera firstPerson;
     public Camera spectator;
 
-    //speeds;
-    public float speed = 5f;    //initial speed of the robot
+    // speeds
+    public float speed = 5f;          // initial speed of the robot
     public float rotationSpeed = 120f; // how fast the robot rotates
-    public float alignSpeed = 8f;   //how fast the robot rotates toward surface
+    public float alignSpeed = 2f;      // how fast the robot rotates toward surface
 
-    //the force of the magnet
+    // the force of the magnet
     public float stickForce = 30f;
 
-    //the robots rigidbody
+    // the robot's rigidbody
     private Rigidbody rb;
 
-    //the input from the keyboard
+    // input
     private Vector2 moveInput;
-
     private Vector2 rotateInput;
 
-    // vectors:
-    private Vector3 currentSurfaceNormal = Vector3.up; //the normal of the surface we are currently on
-    private Vector3 surfaceForward = Vector3.forward; // a vector poionting forward, used as the yaw-reference
-
-    //accumulated yaw around the currentSurfaceNormal
-    private float yawDegrees = 0f;
+    // surface data
+    private Vector3 currentSurfaceNormal = Vector3.up;   // normal of the surface we are currently on
 
     // the robot mesh is rotated 90 degrees, otherwise it will stand up
     private Quaternion meshOffset = Quaternion.Euler(90f, 0f, 0f);
 
-    //keeping track on the last collided surface to avoid updating it every frame
-    private Collider lastSurfaceCollider = null;
-
-    // if the angle changes more than 5 degrees, we will update the surface normal
+    // if the angle changes more than 5 degrees, we update the surface normal
     private const float normalUpdateAngleThreshold = 5f;
 
-    // preparation for the tools
+    // tools
     public bool plasmaTorchActive = false;
     public bool cleaningHeadActive = false;
 
     private PlayerControls controls;
+    private Quaternion orientation;
 
     void Awake()
     {
@@ -54,8 +46,8 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         firstPerson.gameObject.SetActive(true);
         spectator.gameObject.SetActive(false);
         controls = new PlayerControls();
+        orientation = rb.rotation;
     }
-
 
     public void OnMove(InputAction.CallbackContext context)
     {
@@ -64,17 +56,18 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
             moveInput = Vector2.zero;
             return;
         }
+
         moveInput = context.ReadValue<Vector2>();
     }
 
     public void OnRotate(InputAction.CallbackContext context)
     {
-
         if (OnButtonClick.IsPaused)
         {
             moveInput = Vector2.zero;
             return;
         }
+
         rotateInput = context.ReadValue<Vector2>();
         Debug.Log("Rotate input: " + rotateInput);
     }
@@ -104,7 +97,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         controls.Robot.Disable();
     }
 
-    
     public void OnExit(InputAction.CallbackContext context)
     {
         if (!context.performed) return;
@@ -112,11 +104,11 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
         string currentScene = SceneManager.GetActiveScene().name;
 
         // If we're in the main game, treat Exit as Pause instead of quitting
-        
         if (currentScene == "ShipYard Demo")
         {
             Debug.Log("Exit pressed in game: pausing instead of quitting.");
             OnButtonClick pauseScript = FindFirstObjectByType<OnButtonClick>();
+
             if (pauseScript != null)
             {
                 pauseScript.OnPauseButton();
@@ -164,42 +156,14 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     void Update()
     {
-        //switching between the two cameras
-        /*
-        if (Keyboard.current.cKey.wasPressedThisFrame)
-        {
-            if (firstPerson.gameObject.activeSelf)
-            {
-                firstPerson.gameObject.SetActive(false);
-                spectator.gameObject.SetActive(true);
-            }
-            else
-            {
-                firstPerson.gameObject.SetActive(true);
-                spectator.gameObject.SetActive(false);
-            }
-        }*/
-        /*
-        bool toggle =
-        Keyboard.current.cKey.wasPressedThisFrame ||
-        Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame;
-
-        if (toggle)
-        {
-            bool firstActive = firstPerson.gameObject.activeSelf;
-            firstPerson.gameObject.SetActive(!firstActive);
-            spectator.gameObject.SetActive(firstActive);
-            Debug.Log("Camera toggled!");
-        }*/
-
-        //if(OnButtonClick.IsPaused || Time.unscaledTime < OnButtonClick.UnpauseTime + 0.2f) return;
         if (OnButtonClick.IsPaused)
             return;
 
-        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        string currentScene = SceneManager.GetActiveScene().name;
+
         if (currentScene == "ShipYard Demo")
         {
-            // --- CAMERA TOGGLE ---
+            // CAMERA TOGGLE
             if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
             {
                 bool firstActive = firstPerson.gameObject.activeSelf;
@@ -208,7 +172,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
                 Debug.Log("Camera toggled!");
             }
 
-            // --- CLEANING HEAD ---
+            // CLEANING HEAD
             if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame))
             {
@@ -216,7 +180,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
                 Debug.Log(cleaningHeadActive ? "Cleaning enabled" : "Cleaning disabled");
             }
 
-            // --- CUTTING ---
+            // CUTTING
             if ((Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.yKey.wasPressedThisFrame))
             {
@@ -224,7 +188,7 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
                 Debug.Log(plasmaTorchActive ? "Cutting enabled" : "Cutting disabled");
             }
 
-            // --- PAUSE GAME ---
+            // PAUSE GAME
             if ((Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame) ||
                 (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame))
             {
@@ -232,9 +196,6 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
                 if (pauseScript != null)
                     pauseScript.OnPauseButton();
             }
-
-            // --- MOVEMENT ---
-            // Keyboard A (for movement) is already handled by OnMove() via PlayerControls
         }
 
         // change speed with number keys
@@ -267,130 +228,83 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
 
     void FixedUpdate()
     {
-
-
-       
-        //movement, updating of the robots position
-        float moveForward = -moveInput.y * speed;
-        Vector3 movement = transform.up * moveForward * Time.fixedDeltaTime;
-        rb.MovePosition(rb.position + movement);
-
-        //this simulates the force of the magnet on the robot
+        // the force of the magnet
         rb.AddForce(-currentSurfaceNormal * stickForce, ForceMode.Acceleration);
 
-
-        // updating how many degrees the robot has turned around the surface normal since last surface commit
-        yawDegrees += rotateInput.x * rotationSpeed * Time.fixedDeltaTime;
-        Quaternion yawRot = Quaternion.AngleAxis(yawDegrees, currentSurfaceNormal);
-        Vector3 desiredForwardOnSurface = (yawRot * surfaceForward).normalized;
-
-        //if something goes wrong
-        if (desiredForwardOnSurface.sqrMagnitude < 0.001f)
+        // the rotation
+        if (Mathf.Abs(rotateInput.x) > 0.001f)
         {
-            desiredForwardOnSurface = Vector3.ProjectOnPlane(transform.forward, currentSurfaceNormal).normalized;
-            if (desiredForwardOnSurface.sqrMagnitude < 0.001f) desiredForwardOnSurface = Vector3.Cross(currentSurfaceNormal, transform.right).normalized;
+            Quaternion deltaYaw = Quaternion.AngleAxis(
+                rotateInput.x * rotationSpeed * Time.fixedDeltaTime,
+                currentSurfaceNormal
+            );
+
+            orientation = deltaYaw * orientation;
         }
 
-        // desired rotation so that object's forward = desiredForwardOnSurface, object's up = currentSurfaceNormal
-        Quaternion desiredRotation = Quaternion.LookRotation(desiredForwardOnSurface, currentSurfaceNormal);
+        //aligning to surface normal
+        Quaternion alignToSurface =
+            Quaternion.FromToRotation(orientation * Vector3.up, currentSurfaceNormal);
 
-        // compensate for the mesh offset
-        Quaternion targetRbRotation = desiredRotation * Quaternion.Inverse(meshOffset);
+        orientation = alignToSurface * orientation;
 
-        // interpolates the current rotation to the target rotation
-        Quaternion newRotation = Quaternion.Slerp(rb.rotation, targetRbRotation, Mathf.Clamp01(alignSpeed * Time.fixedDeltaTime));
-        rb.MoveRotation(newRotation);
+        // movement
+        Vector3 forward = Vector3.ProjectOnPlane(
+            orientation * Vector3.forward,
+            currentSurfaceNormal
+        ).normalized;
+
+        Vector3 movement = forward * (moveInput.y * speed * Time.fixedDeltaTime);
+        rb.MovePosition(rb.position + movement);
+
+        // applying the rotation
+        Quaternion targetRotation = orientation * Quaternion.Inverse(meshOffset);
+        rb.MoveRotation(
+            Quaternion.Slerp(rb.rotation, targetRotation, alignSpeed * Time.fixedDeltaTime)
+        );
     }
 
-    // is called by OnCollisionEnter. Handles corners and edges of the walls
-    private Vector3 BestContactNormal(Collision collision, Vector3 referenceUp)
+    // finds the best and most natural contact normal
+    private Vector3 BestContactNormal(Collision collision)
     {
-        Vector3 best = collision.contacts.Length > 0 ? collision.contacts[0].normal : referenceUp;
-        float bestDot = Vector3.Dot(referenceUp, best);
+        Vector3 best = collision.contacts[0].normal;
+        float bestDot = Vector3.Dot(currentSurfaceNormal, best);
+
         foreach (var c in collision.contacts)
         {
-            float d = Vector3.Dot(referenceUp, c.normal);
+            float d = Vector3.Dot(currentSurfaceNormal, c.normal);
             if (d > bestDot)
             {
                 bestDot = d;
                 best = c.normal;
             }
         }
-        return best;
+
+        return best.normalized;
     }
 
-    // when we collide with a new wall: get the best contact normal, and adjust to it
+    // when entering a new collider
     private void OnCollisionEnter(Collision collision)
     {
-        // choose best contact normal
-        Vector3 newNormal = BestContactNormal(collision, currentSurfaceNormal);
-        CommitNewSurface(collision.collider, newNormal);
+        TryUpdateSurface(collision);
     }
 
-    // checks if we have collided with a new surface or not, and only changes normal if it is changed noticably 
+    //while on a collider
     private void OnCollisionStay(Collision collision)
     {
-        // If we touched a different collider, treat it as entering a new surface
-        if (collision.collider != lastSurfaceCollider)
-        {
-            Vector3 newNormal = BestContactNormal(collision, currentSurfaceNormal);
-            CommitNewSurface(collision.collider, newNormal);
+        TryUpdateSurface(collision);
+    }
+
+    //updates the normal based on the current surfaces normal
+    private void TryUpdateSurface(Collision collision)
+    {
+        Vector3 newNormal = BestContactNormal(collision);
+        float angle = Vector3.Angle(currentSurfaceNormal, newNormal);
+
+        if (angle < normalUpdateAngleThreshold)
             return;
-        }
 
-        // Otherwise, only update the normal if it changed noticeably (prevents per-frame jitter/work)
-        Vector3 best = BestContactNormal(collision, currentSurfaceNormal);
-        float angle = Vector3.Angle(best, currentSurfaceNormal);
-        if (angle > normalUpdateAngleThreshold)
-        {
-            CommitNewSurface(collision.collider, best);
-        }
+        currentSurfaceNormal = newNormal;
     }
 
-    // this if or when the crawler leaves a surface
-    private void OnCollisionExit(Collision collision)
-    {
-        if (collision.collider == lastSurfaceCollider)
-        {
-            lastSurfaceCollider = null;
-            // default back to world-up when leaving surfaces; you can change behavior here
-            currentSurfaceNormal = Vector3.up;
-
-            // reproject the current transform.forward onto horizontal plane so we keep controlling yaw sensibly
-            surfaceForward = Vector3.ProjectOnPlane(transform.forward, currentSurfaceNormal).normalized;
-            yawDegrees = 0f;
-        }
-    }
-
-    // everything that happens when entering a new surface.
-    private void CommitNewSurface(Collider newCollider, Vector3 newNormal)
-    {
-        Vector3 oldNormal = currentSurfaceNormal;
-        Vector3 oldForward = surfaceForward;
-
-        lastSurfaceCollider = newCollider;
-        currentSurfaceNormal = newNormal.normalized;
-
-        // Rotation that aligns oldNormal to newNormal
-        Quaternion align = Quaternion.FromToRotation(oldNormal, currentSurfaceNormal);
-
-        // Rotate the old tangent direction using the surface-to-surface rotation
-        Vector3 rotatedForward = align * oldForward;
-
-        // Project onto new tangent plane to clean it
-        Vector3 candidate = Vector3.ProjectOnPlane(rotatedForward, currentSurfaceNormal);
-
-        if (candidate.sqrMagnitude < 0.001f)
-        {
-            // Fallback if tangent collapses: choose any stable perpendicular
-            candidate = Vector3.Cross(currentSurfaceNormal, Vector3.up);
-            if (candidate.sqrMagnitude < 0.001f)
-                candidate = Vector3.Cross(currentSurfaceNormal, Vector3.right);
-        }
-
-        candidate.Normalize();
-        surfaceForward = candidate;
-
-        yawDegrees = 0f;
-    }
 }
