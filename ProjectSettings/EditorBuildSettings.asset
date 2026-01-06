@@ -4,5 +4,19 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
-  m_configObjects: {}
+  m_Scenes:
+  - enabled: 0
+    path: Assets/Scenes/SampleScene.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/StartPage.unity
+    guid: 645a25dcd72a62c469500fe07da5f1b2
+  - enabled: 1
+    path: Assets/Scenes/ShipYard Demo.unity
+    guid: 8ff8576bc62f88e418b388619f71c35a
+  - enabled: 1
+    path: Assets/Scenes/PausePage.unity
+    guid: 319471d94f7bf6048b9cd38bcff93798
+  m_configObjects:
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 89d8f714dbc252449b78e864124a9a90, type: 3}
+  m_UseUCBPForAssetBundles: 0
