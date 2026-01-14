@@ -59,22 +59,13 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "Speed",
-                    "type": "Button",
-                    "id": "c8be9756-24ae-4eff-b007-e6500c541450",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
                 {
                     "name": "",
                     "id": "ff49f250-4b77-4f46-9d48-d8bbd955e223",
-                    "path": "<Gamepad>/leftStick",
+                    "path": "<Gamepad>/rightStick",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -118,7 +109,7 @@
                 {
                     "name": "",
                     "id": "24fccfa3-6d61-43ab-8a6a-af9f4dcddd08",
-                    "path": "<Gamepad>/rightStick",
+                    "path": "<Gamepad>/leftStick",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -288,28 +279,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "Cutting",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "e4ea46ec-8114-460d-9149-9aedef80d600",
-                    "path": "<Gamepad>/dpad/up",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Speed",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "c8518116-6432-4e58-a456-24ed97a9e90e",
-                    "path": "<Keyboard>/m",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Speed",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
