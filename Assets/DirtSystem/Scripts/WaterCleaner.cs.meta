@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 32dedc0b89c505e46b3d83d2485b097f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - nozzle: {instanceID: 0}
+  - waterFX: {instanceID: 0}
+  - spraySound: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
