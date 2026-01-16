@@ -40,9 +40,11 @@ public class RobotMovement : MonoBehaviour, PlayerControls.IRobotActions
     private PlayerControls controls;
     private Quaternion orientation;
 
-    [SerializeField] private float[] speedLevels = { 1f, 5f, 8f };
+    [SerializeField] private float[] speedLevels = { 1.0f, 3.0f, 5.0f };
+    [SerializeField] private float maxMoveSpeed = 3.0f;
     private int speedIndex = 0;
 
+    public float MaxMoveSpeed => maxMoveSpeed;
 
     void Awake()
     {

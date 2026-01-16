@@ -6,7 +6,7 @@ public class RobotHUD : MonoBehaviour
 {
     [Header("Robot Reference")]
     public RobotMovement robot;
-    
+
     [Header("Motor Data Texts (L/R)")]
     public TextMeshProUGUI rpmLeftText;
     public TextMeshProUGUI rpmRightText;
@@ -16,51 +16,47 @@ public class RobotHUD : MonoBehaviour
     public TextMeshProUGUI voltRightText;
     public TextMeshProUGUI currLeftText;
     public TextMeshProUGUI currRightText;
-    
+
     [Header("Tool Display")]
     public TextMeshProUGUI barValueText;
     public Image pressureGraphic;
     public Image torchGraphic;
-    
+
     [Header("Status")]
     public TextMeshProUGUI statusText;
     public Image sensorStatus1;
     public Image sensorStatus2;
-    
+
     [Header("Orientation Graphics")]
     public RectTransform rollGraphic;
     public RectTransform yawGraphic;
     public RectTransform pitchGraphic;
     public RectTransform yawBubble;
-    
+
     [Header("Orientation Texts")]
     public TextMeshProUGUI rollText;
     public TextMeshProUGUI yawText;
     public TextMeshProUGUI pitchText;
-    
+
     [Header("Secondary Camera")]
     public Camera backCamera;
     public RawImage backCameraDisplay;
-    
+
     // Internal state
     private float missionStartTime;
-    private float baseVoltage = 23f;
-    private float baseTemp = 40f;
     private Rigidbody robotRb;
-    
-    // Noise timers
-    private float tempNoiseTimer;
-    private float voltNoiseTimer;
-    
+
+    Quaternion initialRotation; // store in Start()
+
     void Start()
     {
         missionStartTime = Time.time;
-        
+
         if (robot != null)
         {
             robotRb = robot.GetComponent<Rigidbody>();
         }
-        
+
         // Setup back camera render texture
         if (backCamera != null && backCameraDisplay != null)
         {
@@ -68,71 +64,89 @@ public class RobotHUD : MonoBehaviour
             backCamera.targetTexture = rt;
             backCameraDisplay.texture = rt;
         }
-        
+
         // Initial status setup
         UpdateSensorStatus();
         UpdateToolDisplay();
+        initialRotation = robot.transform.rotation; // store starting rotation
     }
-    
+
     void Update()
     {
         if (robot == null || robotRb == null) return;
-        
+
         UpdateMotorData();
         UpdateToolDisplay();
         UpdateSensorStatus();
         UpdateOrientation();
     }
-    
+
     void UpdateMotorData()
     {
-        // Get speed factor (0-1 based on current velocity relative to max speed)
-        float velocityMagnitude = robotRb.linearVelocity.magnitude;
-        float speedFactor = Mathf.Clamp01(velocityMagnitude / robot.speed);
-        
-        // RPM: 0 when stationary, higher with speed (max ~300)
-        float baseRpm = speedFactor * 300f;
-        float rpmL = baseRpm + Random.Range(-5f, 5f);
-        float rpmR = baseRpm + Random.Range(-5f, 5f);
-        
-        if (rpmLeftText != null) rpmLeftText.text = Mathf.RoundToInt(Mathf.Max(0, rpmL)).ToString();
-        if (rpmRightText != null) rpmRightText.text = Mathf.RoundToInt(Mathf.Max(0, rpmR)).ToString();
-        
-        // Temperature: fluctuates slightly during mission
-        tempNoiseTimer += Time.deltaTime;
-        float tempNoise = Mathf.PerlinNoise(tempNoiseTimer * 0.5f, 0f) * 2f - 1f;
-        float tempL = baseTemp + tempNoise + Random.Range(-0.2f, 0.2f);
-        float tempR = baseTemp + tempNoise + Random.Range(-0.2f, 0.2f);
-        
-        if (tempLeftText != null) tempLeftText.text = tempL.ToString("F1");
-        if (tempRightText != null) tempRightText.text = tempR.ToString("F1");
-        
-        // Voltage: constant-ish, only decimal fluctuates (23.0-23.9)
-        voltNoiseTimer += Time.deltaTime;
-        float voltDecimalL = Mathf.PerlinNoise(voltNoiseTimer * 0.3f, 10f) * 0.9f;
-        float voltDecimalR = Mathf.PerlinNoise(voltNoiseTimer * 0.3f, 20f) * 0.9f;
-        
-        if (voltLeftText != null) voltLeftText.text = (baseVoltage + voltDecimalL).ToString("F1");
-        if (voltRightText != null) voltRightText.text = (baseVoltage + voltDecimalR).ToString("F1");
-        
-        // Current: higher with higher input speed
-        float baseCurrent = 15f + speedFactor * 10f;
-        float currL = baseCurrent + Random.Range(-0.5f, 0.5f);
-        float currR = baseCurrent + Random.Range(-0.5f, 0.5f);
-        
-        if (currLeftText != null) currLeftText.text = Mathf.RoundToInt(currL).ToString();
-        if (currRightText != null) currRightText.text = Mathf.RoundToInt(currR).ToString();
+        if (robot == null || robotRb == null) return;
+
+        const float maxRPM = 250f;
+        const float maxTemp = 65f;
+        const float nominalVoltage = 23.5f;
+        const float maxCurrent = 30f;
+
+        Vector3 horizontalVelocity = new Vector3(robotRb.linearVelocity.x, 0, robotRb.linearVelocity.z);
+        float speed = horizontalVelocity.magnitude;
+
+        if (speed < 0.01f) speed = 0f;
+
+        float speedFactor = Mathf.Clamp01(speed / robot.MaxMoveSpeed);
+
+        // RPM
+        float rpm = speedFactor * maxRPM;
+        if (speed > 0.01f) rpm += Random.Range(-3f, 3f);
+        rpm = Mathf.Max(0f, rpm);
+        rpmLeftText.text = Mathf.RoundToInt(rpm).ToString();
+        rpmRightText.text = Mathf.RoundToInt(rpm).ToString();
+
+        // Temperature
+        float temp = speedFactor * maxTemp;
+        if (speed > 0.01f) temp += Random.Range(-0.5f, 0.5f);
+        temp = Mathf.Max(0f, temp);
+        tempLeftText.text = temp.ToString("F1");
+        tempRightText.text = temp.ToString("F1");
+
+        // Voltage
+        float voltage = speedFactor * nominalVoltage;
+        if (speed > 0.01f) voltage += Random.Range(-0.1f, 0.1f);
+        voltage = Mathf.Max(0f, voltage);
+        voltLeftText.text = voltage.ToString("F1");
+        voltRightText.text = voltage.ToString("F1");
+
+        // Current
+        float current = speedFactor * maxCurrent;
+        if (speed > 0.01f) current += Random.Range(-1f, 1f);
+        current = Mathf.Max(0f, current);
+        currLeftText.text = Mathf.RoundToInt(current).ToString();
+        currRightText.text = Mathf.RoundToInt(current).ToString();
     }
-    
+
     void UpdateToolDisplay()
     {
+        if (robot == null) return;
+
         bool cleaning = robot.cleaningHeadActive;
         bool cutting = robot.plasmaTorchActive;
-        
-        if (pressureGraphic != null) pressureGraphic.gameObject.SetActive(cleaning);
-        if (torchGraphic != null) torchGraphic.gameObject.SetActive(cutting);
-        
-        // BAR value - fake number that fluctuates when tool is active
+
+        if (pressureGraphic != null)
+        {
+            if (!pressureGraphic.gameObject.activeSelf)
+                pressureGraphic.gameObject.SetActive(true);
+            pressureGraphic.enabled = true;
+        }
+
+        if (torchGraphic != null)
+        {
+            if (!torchGraphic.gameObject.activeSelf)
+                torchGraphic.gameObject.SetActive(true);
+            torchGraphic.enabled = true;
+        }
+
         if (barValueText != null)
         {
             if (cleaning)
@@ -151,67 +165,56 @@ public class RobotHUD : MonoBehaviour
             }
         }
     }
-    
+
     void UpdateSensorStatus()
     {
         float elapsed = Time.time - missionStartTime;
-        
-        // First 5 seconds: show status2, then status1
         bool showStatus1 = elapsed > 5f;
-        
+
         if (sensorStatus1 != null) sensorStatus1.gameObject.SetActive(showStatus1);
         if (sensorStatus2 != null) sensorStatus2.gameObject.SetActive(!showStatus1);
-        
+
         if (statusText != null) statusText.text = "normal";
     }
-    
+
     void UpdateOrientation()
     {
-        // Get robot's euler angles
-        Vector3 euler = robot.transform.eulerAngles;
-        
-        // Normalize angles to -180 to 180 range
-        float roll = NormalizeAngle(euler.z);
+        if (robot == null) return;
+
+        // Relative rotation from initial pose
+        Quaternion relativeRotation = Quaternion.Inverse(initialRotation) * robot.transform.rotation;
+
+        // Extract Euler angles in degrees
+        Vector3 euler = relativeRotation.eulerAngles;
+
+        // Normalize to -180..180
         float yaw = NormalizeAngle(euler.y);
         float pitch = NormalizeAngle(euler.x);
-        
+        float roll = NormalizeAngle(euler.z);
+
         // Update rotation graphics
-        if (rollGraphic != null)
-        {
-            rollGraphic.localRotation = Quaternion.Euler(0, 0, -roll);
-        }
-        
-        if (yawGraphic != null)
-        {
-            yawGraphic.localRotation = Quaternion.Euler(0, 0, -yaw);
-        }
-        
-        if (yawBubble != null)
-        {
-            yawBubble.localRotation = Quaternion.Euler(0, 0, -yaw);
-        }
-        
-        if (pitchGraphic != null)
-        {
-            pitchGraphic.localRotation = Quaternion.Euler(0, 0, -pitch);
-        }
-        
+        if (rollGraphic != null) rollGraphic.localRotation = Quaternion.Euler(0, 0, -roll);
+        if (pitchGraphic != null) pitchGraphic.localRotation = Quaternion.Euler(0, 0, -pitch);
+        if (yawGraphic != null) yawGraphic.localRotation = Quaternion.Euler(0, 0, -yaw);
+        if (yawBubble != null) yawBubble.localRotation = Quaternion.Euler(0, 0, -yaw);
+
         // Update text displays
         if (rollText != null) rollText.text = roll.ToString("F0") + "°";
-        if (yawText != null) yawText.text = yaw.ToString("F0") + "°";
         if (pitchText != null) pitchText.text = pitch.ToString("F0") + "°";
+        if (yawText != null) yawText.text = yaw.ToString("F0") + "°";
     }
-    
+
+    // Helper to normalize angles to -180..180
     float NormalizeAngle(float angle)
     {
         while (angle > 180f) angle -= 360f;
         while (angle < -180f) angle += 360f;
         return angle;
     }
-    
+
+
     void OnDestroy()
     {
-        // Cleanup render texture
         if (backCameraDisplay != null && backCameraDisplay.texture != null)
         {
             if (backCameraDisplay.texture is RenderTexture rt)
