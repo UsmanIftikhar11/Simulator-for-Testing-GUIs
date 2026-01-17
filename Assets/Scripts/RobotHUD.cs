@@ -42,20 +42,51 @@ public class RobotHUD : MonoBehaviour
     public Camera backCamera;
     public RawImage backCameraDisplay;
 
-    // Internal state
+    [Header("Settings")]
+    public float maxMoveSpeedOverride = 0f;
+    public bool showDebugLogs = false;
+
+    [Header("Smoothing")]
+    [Range(0.05f, 0.5f)]
+    public float smoothSpeed = 0.2f; // Lower = smoother but slower response
+    [Range(0.1f, 1.0f)]
+    public float currentSmoothSpeed = 0.3f; // Faster smoothing for current
+
     private float missionStartTime;
     private Rigidbody robotRb;
+    private Quaternion initialRotation;
 
-    Quaternion initialRotation; // store in Start()
+    // Smoothed values
+    private float smoothedRpm;
+    private float smoothedTemp;
+    private float smoothedVoltage;
+    private float smoothedCurrent;
 
     void Start()
     {
         missionStartTime = Time.time;
 
-        if (robot != null)
+        if (robot == null)
         {
-            robotRb = robot.GetComponent<Rigidbody>();
+            Debug.LogError("RobotHUD: Robot reference is missing!");
+            return;
         }
+
+        robotRb = robot.GetComponent<Rigidbody>();
+        if (robotRb == null)
+        {
+            Debug.LogError("RobotHUD: Robot doesn't have a Rigidbody component!");
+            return;
+        }
+
+        // Store initial rotation
+        initialRotation = robot.transform.rotation;
+
+        // Initialize smoothed values
+        smoothedRpm = 0f;
+        smoothedTemp = 20f;
+        smoothedVoltage = 24f;
+        smoothedCurrent = 3.5f; // Start at idle current, not 0
 
         // Setup back camera render texture
         if (backCamera != null && backCameraDisplay != null)
@@ -65,10 +96,8 @@ public class RobotHUD : MonoBehaviour
             backCameraDisplay.texture = rt;
         }
 
-        // Initial status setup
         UpdateSensorStatus();
         UpdateToolDisplay();
-        initialRotation = robot.transform.rotation; // store starting rotation
     }
 
     void Update()
@@ -83,68 +112,133 @@ public class RobotHUD : MonoBehaviour
 
     void UpdateMotorData()
     {
-        if (robot == null || robotRb == null) return;
-
         const float maxRPM = 250f;
         const float maxTemp = 65f;
-        const float nominalVoltage = 23.5f;
-        const float maxCurrent = 30f;
+        const float baseTemp = 20f;
+        const float baseVoltage = 24.0f;
+        const float minVoltage = 20.0f;
+        const float idleCurrent = 3.5f; // Systems always draw some current
+        const float maxLoadCurrent = 28f; // Additional current under load
 
-        Vector3 horizontalVelocity = new Vector3(robotRb.linearVelocity.x, 0, robotRb.linearVelocity.z);
+        // Get velocity (compatible with both old and new Unity)
+        Vector3 vel = Vector3.zero;
+#if UNITY_2023_1_OR_NEWER
+        vel = robotRb.linearVelocity;
+#else
+        vel = robotRb.velocity;
+#endif
+
+        Vector3 horizontalVelocity = new Vector3(vel.x, 0, vel.z);
         float speed = horizontalVelocity.magnitude;
 
-        if (speed < 0.01f) speed = 0f;
+        // Determine max speed
+        float maxSpeed = maxMoveSpeedOverride > 0 ? maxMoveSpeedOverride : robot.MaxMoveSpeed;
+        if (maxSpeed <= 0.01f) maxSpeed = 5f;
 
-        float speedFactor = Mathf.Clamp01(speed / robot.MaxMoveSpeed);
+        float speedFactor = Mathf.Clamp01(speed / maxSpeed);
 
-        // RPM
-        float rpm = speedFactor * maxRPM;
-        if (speed > 0.01f) rpm += Random.Range(-3f, 3f);
-        rpm = Mathf.Max(0f, rpm);
-        rpmLeftText.text = Mathf.RoundToInt(rpm).ToString();
-        rpmRightText.text = Mathf.RoundToInt(rpm).ToString();
+        // Calculate target values
+        float targetRpm = speedFactor * maxRPM;
+        float targetTemp = baseTemp + (speedFactor * (maxTemp - baseTemp));
+        float targetVoltage = baseVoltage - (speedFactor * (baseVoltage - minVoltage));
 
-        // Temperature
-        float temp = speedFactor * maxTemp;
-        if (speed > 0.01f) temp += Random.Range(-0.5f, 0.5f);
-        temp = Mathf.Max(0f, temp);
-        tempLeftText.text = temp.ToString("F1");
-        tempRightText.text = temp.ToString("F1");
+        // Current has baseline + load-based component + tool usage
+        float loadCurrent = speedFactor * maxLoadCurrent;
+        float toolCurrent = 0f;
 
-        // Voltage
-        float voltage = speedFactor * nominalVoltage;
-        if (speed > 0.01f) voltage += Random.Range(-0.1f, 0.1f);
-        voltage = Mathf.Max(0f, voltage);
-        voltLeftText.text = voltage.ToString("F1");
-        voltRightText.text = voltage.ToString("F1");
+        // Add current for active tools
+        try
+        {
+            if (robot.cleaningHeadActive) toolCurrent += 2.5f;
+            if (robot.plasmaTorchActive) toolCurrent += 5.0f;
+        }
+        catch { }
 
-        // Current
-        float current = speedFactor * maxCurrent;
-        if (speed > 0.01f) current += Random.Range(-1f, 1f);
-        current = Mathf.Max(0f, current);
-        currLeftText.text = Mathf.RoundToInt(current).ToString();
-        currRightText.text = Mathf.RoundToInt(current).ToString();
+        float targetCurrent = idleCurrent + loadCurrent + toolCurrent;
+
+        // Smooth the values using Lerp
+        smoothedRpm = Mathf.Lerp(smoothedRpm, targetRpm, smoothSpeed);
+        smoothedTemp = Mathf.Lerp(smoothedTemp, targetTemp, smoothSpeed);
+        smoothedVoltage = Mathf.Lerp(smoothedVoltage, targetVoltage, smoothSpeed);
+        smoothedCurrent = Mathf.Lerp(smoothedCurrent, targetCurrent, currentSmoothSpeed); // Faster smoothing for current
+
+        // Add tiny random fluctuations only when moving
+        float rpmVariance = 0f;
+        float tempVariance = 0f;
+        float voltVariance = 0f;
+        float currVariance = 0f;
+
+        if (speedFactor > 0.02f) // Lower threshold
+        {
+            rpmVariance = Random.Range(-1.5f, 1.5f);
+            tempVariance = Random.Range(-0.2f, 0.2f);
+            voltVariance = Random.Range(-0.05f, 0.05f);
+            currVariance = Random.Range(-0.8f, 0.8f);
+        }
+        else
+        {
+            // Even when idle, add small fluctuations to current
+            currVariance = Random.Range(-0.3f, 0.3f);
+        }
+
+        // Final values with variance
+        float finalRpm = Mathf.Max(0f, smoothedRpm + rpmVariance);
+        float finalTemp = Mathf.Max(baseTemp, smoothedTemp + tempVariance);
+        float finalVoltage = Mathf.Clamp(smoothedVoltage + voltVariance, 0f, baseVoltage);
+        float finalCurrent = Mathf.Max(idleCurrent * 0.5f, smoothedCurrent + currVariance); // Never below half idle current
+
+        // Update display - round to reduce flicker
+        if (rpmLeftText != null) rpmLeftText.text = Mathf.RoundToInt(finalRpm).ToString();
+        if (rpmRightText != null) rpmRightText.text = Mathf.RoundToInt(finalRpm).ToString();
+
+        if (tempLeftText != null) tempLeftText.text = finalTemp.ToString("F1");
+        if (tempRightText != null) tempRightText.text = finalTemp.ToString("F1");
+
+        if (voltLeftText != null) voltLeftText.text = finalVoltage.ToString("F1");
+        if (voltRightText != null) voltRightText.text = finalVoltage.ToString("F1");
+
+        // Display current with 1 decimal place so small values show
+        if (currLeftText != null) currLeftText.text = finalCurrent.ToString("F1");
+        if (currRightText != null) currRightText.text = finalCurrent.ToString("F1");
+
+        // Debug logging
+        if (showDebugLogs && Time.frameCount % 120 == 0)
+        {
+            Debug.Log($"=== MOTOR DATA DEBUG ===");
+            Debug.Log($"Speed: {speed:F2} m/s | SpeedFactor: {speedFactor:F3} | MaxSpeed: {maxSpeed:F2}");
+            Debug.Log($"Target Current: {targetCurrent:F1}A | Smoothed: {smoothedCurrent:F1}A | Final: {finalCurrent:F1}A");
+            Debug.Log($"RPM: {finalRpm:F0} | Temp: {finalTemp:F1}°C | Volt: {finalVoltage:F1}V");
+        }
     }
 
     void UpdateToolDisplay()
     {
-        if (robot == null) return;
+        bool cleaning = false;
+        bool cutting = false;
 
-        bool cleaning = robot.cleaningHeadActive;
-        bool cutting = robot.plasmaTorchActive;
+        try
+        {
+            cleaning = robot.cleaningHeadActive;
+            cutting = robot.plasmaTorchActive;
+        }
+        catch (System.Exception e)
+        {
+            if (showDebugLogs && Time.frameCount % 120 == 0)
+            {
+                Debug.LogWarning($"Could not access tool states: {e.Message}");
+            }
+        }
 
         if (pressureGraphic != null)
         {
-            if (!pressureGraphic.gameObject.activeSelf)
-                pressureGraphic.gameObject.SetActive(true);
-            pressureGraphic.enabled = true;
+            pressureGraphic.gameObject.SetActive(true);
+            pressureGraphic.enabled = cleaning;
         }
 
         if (torchGraphic != null)
         {
-            if (!torchGraphic.gameObject.activeSelf)
-                torchGraphic.gameObject.SetActive(true);
-            torchGraphic.enabled = true;
+            torchGraphic.gameObject.SetActive(true);
+            torchGraphic.enabled = cutting;
         }
 
         if (barValueText != null)
@@ -169,19 +263,17 @@ public class RobotHUD : MonoBehaviour
     void UpdateSensorStatus()
     {
         float elapsed = Time.time - missionStartTime;
-        bool showStatus1 = elapsed > 5f;
+        bool showStatus1 = elapsed > 4f;
 
         if (sensorStatus1 != null) sensorStatus1.gameObject.SetActive(showStatus1);
         if (sensorStatus2 != null) sensorStatus2.gameObject.SetActive(!showStatus1);
 
-        if (statusText != null) statusText.text = "normal";
+        if (statusText != null) statusText.text = "NORMAL";
     }
 
     void UpdateOrientation()
     {
-        if (robot == null) return;
-
-        // Relative rotation from initial pose
+        // Calculate relative rotation from initial pose
         Quaternion relativeRotation = Quaternion.Inverse(initialRotation) * robot.transform.rotation;
 
         // Extract Euler angles in degrees
@@ -196,7 +288,6 @@ public class RobotHUD : MonoBehaviour
         if (rollGraphic != null) rollGraphic.localRotation = Quaternion.Euler(0, 0, -roll);
         if (pitchGraphic != null) pitchGraphic.localRotation = Quaternion.Euler(0, 0, -pitch);
         if (yawGraphic != null) yawGraphic.localRotation = Quaternion.Euler(0, 0, -yaw);
-        if (yawBubble != null) yawBubble.localRotation = Quaternion.Euler(0, 0, -yaw);
 
         // Update text displays
         if (rollText != null) rollText.text = roll.ToString("F0") + "°";
@@ -204,14 +295,12 @@ public class RobotHUD : MonoBehaviour
         if (yawText != null) yawText.text = yaw.ToString("F0") + "°";
     }
 
-    // Helper to normalize angles to -180..180
     float NormalizeAngle(float angle)
     {
         while (angle > 180f) angle -= 360f;
         while (angle < -180f) angle += 360f;
         return angle;
     }
-
 
     void OnDestroy()
     {
